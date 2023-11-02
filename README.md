@@ -1,4 +1,4 @@
-# Django Webhook pyTelegramBotAPI
+# Django + Webhook + pyTelegramBotAPI
 
 ```
 $ cp .env.example .env

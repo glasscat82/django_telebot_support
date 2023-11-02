@@ -47,6 +47,10 @@ def markup_inline():
     item_no = telebot.types.InlineKeyboardButton(text='Непонятно', callback_data='N')
     return markup_inline_.add(item_yes, item_no)
 
+def get_name(message):
+    name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
+    return name
+
 @require_POST
 def api_bots(request: HttpRequest, token):    
     method = request.method  
@@ -62,18 +66,26 @@ def api_bots(request: HttpRequest, token):
 
 @bot.message_handler(commands=['start'])
 def start(message: telebot.types.Message):
-    name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
+    name = get_name(message)
     bot.send_message(message.chat.id, f'Приветствуем Вас! {name}\n'
-                                      f'Мы бот, который будет наравлять беседу\n\n'
+                                      f'Это бот, который будет направлять беседу\n\n'
                                       f'Чтобы узнать больше команд, напишите /help', reply_markup=markup_inline())
 
 @bot.message_handler(commands=['help'])
 def start(message: telebot.types.Message):
-    name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
+    name = get_name(message)
     bot.send_message(message.chat.id, f'Приветствуем Вас! {name}\n'
                                       f'/start - включить бота\n'
                                       f'/help - справочник\n'
+                                      f'/info - информация\n'
                                       f'/getchatid - возвращает ваш id или id чата\n', reply_markup=markup_inline())
+
+@bot.message_handler(commands=['info'])
+def start(message: telebot.types.Message):
+    name = get_name(message)
+    bot.send_message(message.chat.id, f'Информация {name}\n'
+                                      f'Работет на: Django+Webhook+pyTelegramBotAPI\n'
+                                      f'Автор: github.com/glasscat82')
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
