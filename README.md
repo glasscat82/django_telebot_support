@@ -1,4 +1,11 @@
-# Django + Webhook + pyTelegramBotAPI
+# тг. бот службы технической поддержки
+(или прокси бот)
+в файле .env  токен и chat_id администратора-менеджера
+пользователи пишт боту он отправляет сообщение админам [chat_id]
+чтобы узнать chat_id набрать /getchatid
+(или добавить бот в чат узнать id чата, и добавить в [chat_id, -chat_id])
+
+## Django + Webhook + pyTelegramBotAPI
 
 ```
 $ cp .env.example .env
