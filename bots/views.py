@@ -10,7 +10,7 @@ from .models import Chat, Bot
 
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded = False,  parse_mode = 'HTML')
-chat_arr = [ADMIN_CHAT_ID]
+chat_arr = [int(ADMIN_CHAT_ID)]
 
 logging.basicConfig(
     level = logging.DEBUG, 
@@ -40,17 +40,30 @@ def get_name(message):
     name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
     return name
 
+def get_message(message):
+    """ get message oll admin """
+    markup = telebot.types.ForceReply(selective=False)        
+    for cid in chat_arr:
+        bot.send_message(cid, f'cid: {message.chat.id}\n'
+                                f'@{message.from_user.username} / {message.from_user.first_name} / {message.from_user.last_name} / {message.from_user.language_code}\n\n'
+                                f'{message.text}', reply_markup=markup)
+
 @require_POST
-def api_bots(request: HttpRequest, token):    
-    method = request.method  
-    data_unicode = request.body.decode('utf-8')
+def api_bots(request: HttpRequest, token):
+    """ main function """
+    try:  
+        method = request.method  
+        data_unicode = request.body.decode('utf-8')
 
-    if data_unicode is None or data_unicode is '':
-        return JsonResponse({'error':True, 'method':method})
+        if data_unicode is None or data_unicode is '':
+            return JsonResponse({'error':True, 'method':method})
 
-    data = json.loads(data_unicode)
-    update = telebot.types.Update.de_json(data)
-    bot.process_new_updates([update])
+        data = json.loads(data_unicode)
+        update = telebot.types.Update.de_json(data)
+        bot.process_new_updates([update])
+
+    except Exception as e:
+        logger.error(sys.exc_info()[1])        
 
     return main_view(request)
 
@@ -121,9 +134,8 @@ def echo_all(message):
             old_chat_id = rm_arr[0].replace('cid:','',1).strip()      
             bot.send_message(old_chat_id, message.text)
 
+        else:
+            get_message(message)
+
     if is_admin is False:
-        markup = telebot.types.ForceReply(selective=False)        
-        for cid in chat_arr:
-            bot.send_message(cid, f'cid: {message.chat.id}\n'
-                                  f'@{message.from_user.username} / {message.from_user.first_name} / {message.from_user.last_name} / {message.from_user.language_code}\n\n'
-                                  f'{message.text}', reply_markup=markup)
+        get_message(message)
