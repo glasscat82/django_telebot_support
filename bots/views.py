@@ -21,8 +21,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def main_view(request):    
-    response = JsonResponse({'ok':True, 'result':True, 'method':request.method, 'v':'0.0.3'})
+def main_view(request):
+    response = JsonResponse({'ok':True, 'result':True, 'method':request.method, 'v':'0.0.4'})
     response["Access-Control-Allow-Origin"] = "*"
     response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
     # response["Access-Control-Max-Age"] = "1000"
@@ -41,7 +41,7 @@ def get_name(message):
     return name
 
 def get_message(message):
-    """ get message oll admin """
+    """ get message all admin """
     markup = telebot.types.ForceReply(selective=False)        
     for cid in chat_arr:
         bot.send_message(cid, f'cid: {message.chat.id}\n'
@@ -102,7 +102,6 @@ def callback_inline(call):
         # bot.edit_message_text(call.message.text, call.message.chat.id, call.message.message_id)
         bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup_inline())
 
-
 @bot.message_handler(commands=['getchatid'])
 def getchatid(message: telebot.types.Message):
     cid = message.chat.id
@@ -124,9 +123,8 @@ def getuser(message: telebot.types.Message):
 
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
+    """ proxy message for admin """
     is_admin = message.chat.id in chat_arr
-
-    # logger.debug(message)
 
     if is_admin is True:
         if message.reply_to_message is not None:
