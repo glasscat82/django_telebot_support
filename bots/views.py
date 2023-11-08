@@ -86,9 +86,16 @@ def start(message: telebot.types.Message):
 @bot.message_handler(commands=['info'])
 def start(message: telebot.types.Message):
     name = get_name(message)
-    bot.send_message(message.chat.id, f'Информация {name}\n'
-                                      f'Работет на: Django+Webhook+pyTelegramBotAPI\n'
-                                      f'Автор: github.com/glasscat82')
+
+    keyboard_ = telebot.types.InlineKeyboardMarkup()
+    url_button = telebot.types.InlineKeyboardButton(text="Автор: GC82", url="https://github.com/glasscat82")
+    keyboard_.add(url_button)
+
+    bot.send_message(message.chat.id, f'Информация для: {name}\n'
+                                      f'Работет на: Django,Webhook,pyTelegramBotAPI\n'
+                                      f'Бот: службы технической поддержки\n'
+                                      f'(или прокси бот)',
+                                      reply_markup = keyboard_)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
