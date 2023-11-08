@@ -9,7 +9,7 @@ from config.settings import BOT_TOKEN, ADMIN_CHAT_ID, STATIC_DIR
 from .models import Chat, Bot
 
 
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode = 'HTML')
+bot = telebot.TeleBot(BOT_TOKEN, threaded = False,  parse_mode = 'HTML')
 chat_arr = [ADMIN_CHAT_ID]
 
 logging.basicConfig(
@@ -20,17 +20,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-def write_json(data, filename=None):
-        filename = f'{STATIC_DIR}/data.json' if filename is None else filename
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-def load_json(filename=None):
-    filename = f'{STATIC_DIR}/data.json' if filename is None else filename
-    with open(filename, 'r', encoding='utf-8') as f:
-        return json.load(f)
-    return {}
 
 def main_view(request):    
     response = JsonResponse({'ok':True, 'result':True, 'method':request.method, 'v':'0.0.3'})
@@ -56,10 +45,11 @@ def api_bots(request: HttpRequest, token):
     method = request.method  
     data_unicode = request.body.decode('utf-8')
 
-    if data_unicode is None:
+    if data_unicode is None or data_unicode is '':
         return JsonResponse({'error':True, 'method':method})
 
-    update = telebot.types.Update.de_json(data_unicode)
+    data = json.loads(data_unicode)
+    update = telebot.types.Update.de_json(data)
     bot.process_new_updates([update])
 
     return main_view(request)
@@ -124,7 +114,6 @@ def echo_all(message):
     is_admin = message.chat.id in chat_arr
 
     # logger.debug(message)
-    # write_json(message.json)
 
     if is_admin is True:
         if message.reply_to_message is not None:
