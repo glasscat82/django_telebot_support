@@ -135,4 +135,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # @YouNameBot
 BOT_TOKEN = env.str('BOT_TOKEN')
 # ADMIN_CHAT_ID - chat_id you users or you group telegram
-ADMIN_CHAT_ID = env.str('ADMIN_CHAT_ID')
+ADMIN_CHAT_ID = env.int('ADMIN_CHAT_ID')

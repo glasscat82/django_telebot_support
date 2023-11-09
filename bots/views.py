@@ -9,6 +9,7 @@ from config.settings import BOT_TOKEN, ADMIN_CHAT_ID, STATIC_DIR
 from .models import Chat, Bot
 
 
+version_relise = '0.0.5'
 bot = telebot.TeleBot(BOT_TOKEN, threaded = False,  parse_mode = 'HTML')
 chat_arr = [int(ADMIN_CHAT_ID)]
 
@@ -22,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main_view(request):
-    response = JsonResponse({'ok':True, 'result':True, 'method':request.method, 'v':'0.0.4'})
+    response = JsonResponse({'ok':True, 'result':True, 'method':request.method, 'v':version_relise})
     response["Access-Control-Allow-Origin"] = "*"
     response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
     # response["Access-Control-Max-Age"] = "1000"
@@ -40,13 +41,38 @@ def get_name(message):
     name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
     return name
 
+def get_cid(message):
+    """ cid for old chat_id """            
+    text_ = ''
+    if message.reply_to_message.text is not None:
+        text_ = message.reply_to_message.text
+    
+    if message.reply_to_message.caption is not None:
+        text_ = message.reply_to_message.caption
+    
+    rm_arr = (text_).split('\n')
+    old_chat_id = rm_arr[0].replace('cid:', '', 1).strip()
+
+    return old_chat_id
+
+def get_text(message):
+    m = []
+    m.append(f'cid: {message.chat.id}')
+    m.append(f'@{message.from_user.username} / {message.from_user.first_name} / {message.from_user.last_name} / {message.from_user.language_code}')
+
+    if message.text is not None:
+        m.append(f'{message.text}')
+
+    if message.caption is not None:
+        m.append(f'{message.caption}')
+
+    return "\n".join(m)
+
 def get_message(message):
     """ get message all admin """
     markup = telebot.types.ForceReply(selective=False)        
     for cid in chat_arr:
-        bot.send_message(cid, f'cid: {message.chat.id}\n'
-                                f'@{message.from_user.username} / {message.from_user.first_name} / {message.from_user.last_name} / {message.from_user.language_code}\n\n'
-                                f'{message.text}', reply_markup=markup)
+        bot.send_message(cid, get_text(message), reply_markup=markup)
 
 @require_POST
 def api_bots(request: HttpRequest, token):
@@ -132,11 +158,14 @@ def getuser(message: telebot.types.Message):
 def echo_all(message):
     """ proxy message for admin """
     is_admin = message.chat.id in chat_arr
+    
+    # logger.debug(is_admin)
+    # logger.debug(message.reply_to_message)
 
     if is_admin is True:
-        if message.reply_to_message is not None:
-            rm_arr = (message.reply_to_message.text).split('\n')
-            old_chat_id = rm_arr[0].replace('cid:','',1).strip()      
+
+        if message.reply_to_message is not None:   
+            old_chat_id = get_cid(message)
             bot.send_message(old_chat_id, message.text)
 
         else:
@@ -144,3 +173,31 @@ def echo_all(message):
 
     if is_admin is False:
         get_message(message)
+
+@bot.message_handler(content_types=['photo'])
+def photo(message):
+    is_admin = message.chat.id in chat_arr
+    file_id = message.photo[-1].file_id
+
+    if is_admin is True:
+        if message.reply_to_message is not None:       
+            old_chat_id = get_cid(message)
+            bot.send_photo(old_chat_id, file_id, caption=message.caption)
+
+    if is_admin is False:
+        for cid in chat_arr:
+            bot.send_photo(cid, file_id, caption=get_text(message))
+
+@bot.message_handler(content_types=['document'])
+def document(message):
+    is_admin = message.chat.id in chat_arr
+    file_id = message.document.file_id
+
+    if is_admin is True:
+        if message.reply_to_message is not None:       
+            old_chat_id = get_cid(message)
+            bot.send_document(old_chat_id, file_id, caption=message.caption)
+
+    if is_admin is False:
+        for cid in chat_arr:
+            bot.send_document(cid, file_id, caption=get_text(message))
