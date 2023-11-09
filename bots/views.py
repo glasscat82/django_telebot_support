@@ -9,9 +9,8 @@ from config.settings import BOT_TOKEN, ADMIN_CHAT_ID, STATIC_DIR
 from .models import Chat, Bot
 
 
-version_relise = '0.0.5'
+version_relise = '0.0.7'
 bot = telebot.TeleBot(BOT_TOKEN, threaded = False,  parse_mode = 'HTML')
-chat_arr = [int(ADMIN_CHAT_ID)]
 
 logging.basicConfig(
     level = logging.DEBUG, 
@@ -40,39 +39,6 @@ def markup_inline():
 def get_name(message):
     name = f'{message.from_user.first_name}' if message.from_user.last_name is None else f'{message.from_user.first_name} {message.from_user.last_name}'
     return name
-
-def get_cid(message):
-    """ cid for old chat_id """            
-    text_ = ''
-    if message.reply_to_message.text is not None:
-        text_ = message.reply_to_message.text
-    
-    if message.reply_to_message.caption is not None:
-        text_ = message.reply_to_message.caption
-    
-    rm_arr = (text_).split('\n')
-    old_chat_id = rm_arr[0].replace('cid:', '', 1).strip()
-
-    return old_chat_id
-
-def get_text(message):
-    m = []
-    m.append(f'cid: {message.chat.id}')
-    m.append(f'@{message.from_user.username} / {message.from_user.first_name} / {message.from_user.last_name} / {message.from_user.language_code}')
-
-    if message.text is not None:
-        m.append(f'{message.text}')
-
-    if message.caption is not None:
-        m.append(f'{message.caption}')
-
-    return "\n".join(m)
-
-def get_message(message):
-    """ get message all admin """
-    markup = telebot.types.ForceReply(selective=False)        
-    for cid in chat_arr:
-        bot.send_message(cid, get_text(message), reply_markup=markup)
 
 @require_POST
 def api_bots(request: HttpRequest, token):
@@ -142,62 +108,18 @@ def getchatid(message: telebot.types.Message):
     fid = message.from_user.id    
     bot.send_message(message.chat.id, '\n'.join([f'cid: {cid}', f'mid: {mid}', f'fid: {fid}']))
 
-@bot.message_handler(commands=['getuser'])
-def getuser(message: telebot.types.Message):
-    try:
-        fid = message.from_user.id
-        bot.send_message(message.chat.id, '\n'.join([f'fid: {fid}',
-                                                     f'first_name: {message.from_user.first_name}',
-                                                     f'username: {message.from_user.username}', 
-                                                     f'last_name: {message.from_user.last_name}',
-                                                     f'language_code: {message.from_user.language_code}']))  
-    except Exception as e:
-        logger.error(sys.exc_info()[1])
-
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    """ proxy message for admin """
-    is_admin = message.chat.id in chat_arr
-    
-    # logger.debug(is_admin)
-    # logger.debug(message.reply_to_message)
+@bot.message_handler(content_types=['text','audio','video','image','photo','voice','document'])
+def on_message(message):
+    is_admin = message.chat.id == int(ADMIN_CHAT_ID)
 
     if is_admin is True:
-
-        if message.reply_to_message is not None:   
-            old_chat_id = get_cid(message)
-            bot.send_message(old_chat_id, message.text)
-
+        if message.reply_to_message is not None:            
+            # logger.debug(message.reply_to_message.forward_from)
+            # logger.debug(message.reply_to_message.chat.id)
+            cid = message.reply_to_message.forward_from.id
+            bot.copy_message(cid, message.chat.id, message.id)
         else:
-            get_message(message)
-
-    if is_admin is False:
-        get_message(message)
-
-@bot.message_handler(content_types=['photo'])
-def photo(message):
-    is_admin = message.chat.id in chat_arr
-    file_id = message.photo[-1].file_id
-
-    if is_admin is True:
-        if message.reply_to_message is not None:       
-            old_chat_id = get_cid(message)
-            bot.send_photo(old_chat_id, file_id, caption=message.caption)
-
-    if is_admin is False:
-        for cid in chat_arr:
-            bot.send_photo(cid, file_id, caption=get_text(message))
-
-@bot.message_handler(content_types=['document'])
-def document(message):
-    is_admin = message.chat.id in chat_arr
-    file_id = message.document.file_id
-
-    if is_admin is True:
-        if message.reply_to_message is not None:       
-            old_chat_id = get_cid(message)
-            bot.send_document(old_chat_id, file_id, caption=message.caption)
-
-    if is_admin is False:
-        for cid in chat_arr:
-            bot.send_document(cid, file_id, caption=get_text(message))
+            bot.forward_message(int(ADMIN_CHAT_ID), message.chat.id, message.id)
+    
+    if is_admin is False:        
+        bot.forward_message(int(ADMIN_CHAT_ID), message.chat.id, message.id)
